@@ -1,0 +1,4 @@
+[package]
+name = "b2-sdk-rust"
+version = "0.1.0"
+edition = "2021"
