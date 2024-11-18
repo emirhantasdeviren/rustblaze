@@ -7,3 +7,4 @@ edition = "2021"
 reqwest = "0.12.9"
 serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.133"
+tokio = "1.41.1"
