@@ -1,5 +1,5 @@
 [package]
-name = "b2-sdk-rust"
+name = "rustblaze"
 version = "0.1.0"
 edition = "2021"
 
