@@ -70,7 +70,7 @@ impl Client {
         }
     }
 
-    async fn authorize_account(&self) {
+    async fn authorize_account(&self) -> Result<()> {
         const PATH: &str = "/b2api/v3/b2_authorize_account";
         let url = format!("{}{}", BASE_URL, PATH);
         let req = self
@@ -78,13 +78,9 @@ impl Client {
             .get(url)
             .basic_auth(&self.app_key.id, Some(&self.app_key.secret));
 
-        let res = req
-            .send()
-            .await
-            .unwrap()
-            .json::<AuthorizeAccountResponse>()
-            .await
-            .unwrap();
+        let res = req.send().await?;
+
+        let res = handle_b2_api_response::<AuthorizeAccountResponse>(res).await?;
 
         let account = Account {
             id: res.account_id,
@@ -96,9 +92,11 @@ impl Client {
         };
 
         *self.authorized_account.lock().unwrap() = Some(account);
+
+        Ok(())
     }
 
-    async fn _list_buckets(&self, mut req: ListBucketsRequest) -> ListBucketsResponse {
+    async fn _list_buckets(&self, mut req: ListBucketsRequest) -> Result<ListBucketsResponse> {
         const PATH: &str = "/b2api/v3/b2_list_buckets";
 
         let account = self
@@ -118,7 +116,9 @@ impl Client {
             .header(reqwest::header::AUTHORIZATION, account.token)
             .json(&req);
 
-        req.send().await.unwrap().json().await.unwrap()
+        let res = req.send().await?;
+
+        handle_b2_api_response(res).await
     }
 
     pub async fn bucket<T: AsRef<str>>(&self, bucket_name: T) -> Bucket {
@@ -156,10 +156,10 @@ where
     T: DeserializeOwned,
 {
     if res.status().is_client_error() || res.status().is_server_error() {
-        let err_response = res.json::<ErrorResponse>().await.unwrap();
+        let err_response = res.json::<ErrorResponse>().await?;
 
         return Err(err_response.into());
     }
 
-    Ok(res.json::<T>().await.unwrap())
+    Ok(res.json::<T>().await?)
 }
