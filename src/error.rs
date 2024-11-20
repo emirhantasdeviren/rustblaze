@@ -31,14 +31,18 @@ impl ::std::fmt::Display for Error {
 
 impl ::std::error::Error for Error {}
 
-impl TryFrom<ErrorResponse> for Error {
-    type Error = UnknownErrorCode;
-
-    fn try_from(res: ErrorResponse) -> Result<Self, Self::Error> {
+impl From<ErrorResponse> for Error {
+    fn from(res: ErrorResponse) -> Self {
         let message = res.message.clone();
-        let kind = ErrorKind::try_from(res)?;
+        let kind = match ErrorKind::try_from(res) {
+            Ok(k) => k,
+            Err(e) => {
+                tracing::warn!(message = "encountered unknown error", code = e.0);
+                ErrorKind::Unknown
+            }
+        };
 
-        Ok(Self { kind, message })
+        Self { kind, message }
     }
 }
 
@@ -52,6 +56,7 @@ pub enum ErrorKind {
     Unauthorized,
     Unsupported,
     TransactionCapExceeded,
+    Unknown,
 }
 
 #[derive(Debug, Clone)]
