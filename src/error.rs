@@ -1,12 +1,5 @@
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
-struct ErrorResponse {
-    status: u16,
-    code: String,
-    message: String,
-}
-
 #[derive(Debug)]
 pub struct Error {
     kind: ErrorKind,
@@ -25,7 +18,7 @@ impl Error {
 
 impl ::std::fmt::Display for Error {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-        self.message.fmt(f) 
+        self.message.fmt(f)
     }
 }
 
@@ -86,3 +79,11 @@ impl TryFrom<ErrorResponse> for ErrorKind {
         }
     }
 }
+
+#[derive(Debug, Deserialize)]
+struct ErrorResponse {
+    status: u16,
+    code: String,
+    message: String,
+}
+
