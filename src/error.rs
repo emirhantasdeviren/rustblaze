@@ -9,11 +9,16 @@ struct ErrorResponse {
 
 pub struct Error {
     kind: ErrorKind,
+    message: String,
 }
 
 impl Error {
     pub fn kind(&self) -> ErrorKind {
         self.kind
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
     }
 }
 
@@ -21,9 +26,10 @@ impl TryFrom<ErrorResponse> for Error {
     type Error = UnknownErrorCode;
 
     fn try_from(res: ErrorResponse) -> Result<Self, Self::Error> {
+        let message = res.message.clone();
         let kind = ErrorKind::try_from(res)?;
 
-        Ok(Self { kind })
+        Ok(Self { kind, message })
     }
 }
 
