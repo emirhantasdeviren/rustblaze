@@ -33,7 +33,7 @@ impl From<ErrorResponse> for Error {
         let kind = match ErrorKind::try_from(res) {
             Ok(k) => k,
             Err(e) => {
-                tracing::warn!(message = "encountered unknown error", code = e.0);
+                tracing::warn!(message = "encountered unknown error code", code = e.0);
                 ErrorKind::Unknown
             }
         };
@@ -56,7 +56,7 @@ pub enum ErrorKind {
 }
 
 #[derive(Debug, Clone)]
-struct UnknownErrorCode(String);
+pub(crate) struct UnknownErrorCode(String);
 
 impl ::std::fmt::Display for UnknownErrorCode {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
@@ -89,4 +89,3 @@ pub(crate) struct ErrorResponse {
     code: String,
     message: String,
 }
-
