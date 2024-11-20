@@ -29,6 +29,8 @@ impl ::std::fmt::Display for Error {
     }
 }
 
+impl ::std::error::Error for Error {}
+
 impl TryFrom<ErrorResponse> for Error {
     type Error = UnknownErrorCode;
 
