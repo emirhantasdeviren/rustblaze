@@ -7,6 +7,7 @@ struct ErrorResponse {
     message: String,
 }
 
+#[derive(Debug)]
 pub struct Error {
     kind: ErrorKind,
     message: String,
