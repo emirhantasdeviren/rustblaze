@@ -42,6 +42,20 @@ impl From<ErrorResponse> for Error {
     }
 }
 
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        let kind = ErrorKind::from(err);
+        let message = match kind {
+            ErrorKind::Connect => "could not connect",
+            ErrorKind::Timeout => "timed out",
+            ErrorKind::Deserialize => "invalid or malformed response",
+            _ => "unknown error related to communication",
+        }.to_string();
+
+        Self { kind, message }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 #[non_exhaustive]
 pub enum ErrorKind {
@@ -52,6 +66,9 @@ pub enum ErrorKind {
     Unauthorized,
     Unsupported,
     TransactionCapExceeded,
+    Connect,
+    Timeout,
+    Deserialize,
     Unknown,
 }
 
@@ -80,6 +97,22 @@ impl TryFrom<ErrorResponse> for ErrorKind {
             "transaction_cap_exceeded" => Ok(Self::TransactionCapExceeded),
             code => Err(UnknownErrorCode(code.to_string())),
         }
+    }
+}
+
+impl From<reqwest::Error> for ErrorKind {
+    fn from(err: reqwest::Error) -> Self {
+        if err.is_connect() {
+            return Self::Connect;
+        }
+        if err.is_timeout() {
+            return Self::Timeout;
+        }
+        if err.is_decode() {
+            return Self::Deserialize;
+        }
+
+        return Self::Unknown;
     }
 }
 
