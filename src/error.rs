@@ -84,7 +84,7 @@ impl TryFrom<ErrorResponse> for ErrorKind {
 }
 
 #[derive(Debug, Deserialize)]
-struct ErrorResponse {
+pub(crate) struct ErrorResponse {
     status: u16,
     code: String,
     message: String,

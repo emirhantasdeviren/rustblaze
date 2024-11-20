@@ -1,6 +1,6 @@
 mod bucket;
 mod client;
-mod error;
+pub(crate) mod error;
 
 pub use bucket::Bucket;
 pub use client::{ApplicationKey, Client};

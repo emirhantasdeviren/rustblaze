@@ -1,8 +1,10 @@
 use std::sync::{Arc, Mutex};
 
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::Bucket;
+use crate::error::ErrorResponse;
+use crate::{Bucket, Result};
 
 pub const BASE_URL: &str = "https://api.backblazeb2.com";
 
@@ -147,4 +149,17 @@ struct Account {
     id: String,
     storage_api_info: StorageApiInfo,
     token: String,
+}
+
+async fn handle_b2_api_response<T>(res: reqwest::Response) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    if res.status().is_client_error() || res.status().is_server_error() {
+        let err_response = res.json::<ErrorResponse>().await.unwrap();
+
+        return Err(err_response.into());
+    }
+
+    Ok(res.json::<T>().await.unwrap())
 }
