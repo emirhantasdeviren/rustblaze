@@ -1,3 +1,4 @@
+use ::std::result::Result as StdResult;
 use serde::Deserialize;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -68,7 +69,7 @@ impl ::std::error::Error for UnknownErrorCode {}
 impl TryFrom<ErrorResponse> for ErrorKind {
     type Error = UnknownErrorCode;
 
-    fn try_from(res: ErrorResponse) -> Result<Self, Self::Error> {
+    fn try_from(res: ErrorResponse) -> StdResult<Self, Self::Error> {
         match res.code.as_str() {
             "bad_auth_token" => Ok(Self::BadAuthToken),
             "expired_auth_token" => Ok(Self::ExpiredAuthToken),
