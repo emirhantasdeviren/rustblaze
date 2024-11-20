@@ -1,10 +1,9 @@
-use std::sync::{Arc, Mutex};
-
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
+use crate::account::{Authorized, StorageApiInfo};
 use crate::error::ErrorResponse;
-use crate::{Bucket, Result};
+use crate::{Account, Bucket, Result};
 
 pub const BASE_URL: &str = "https://api.backblazeb2.com";
 
@@ -57,32 +56,36 @@ struct ListBucketsBuckets {
 #[derive(Clone, Debug)]
 pub struct Client {
     inner: reqwest::Client,
-    app_key: ApplicationKey,
-    authorized_account: Arc<Mutex<Option<Account>>>,
+    account: Account,
 }
 
 impl Client {
-    pub fn new(app_key: ApplicationKey) -> Self {
+    pub fn new(id: String, secret: String) -> Self {
         Self {
             inner: reqwest::Client::new(),
-            app_key,
-            authorized_account: Arc::new(Mutex::new(None)),
+            account: Account::new(id, secret),
         }
     }
 
-    async fn authorize_account(&self) -> Result<()> {
+    async fn get_or_try_authorize(&self) -> Result<Authorized> {
+        if let Some(authorized) = self.account.authorized() {
+            Ok(authorized)
+        } else {
+            self.authorize_account().await
+        }
+    }
+
+    async fn authorize_account(&self) -> Result<Authorized> {
         const PATH: &str = "/b2api/v3/b2_authorize_account";
         let url = format!("{}{}", BASE_URL, PATH);
-        let req = self
-            .inner
-            .get(url)
-            .basic_auth(&self.app_key.id, Some(&self.app_key.secret));
+        let key = self.account.application_key();
+        let req = self.inner.get(url).basic_auth(key.id, Some(key.secret));
 
         let res = req.send().await?;
 
         let res = handle_b2_api_response::<AuthorizeAccountResponse>(res).await?;
 
-        let account = Account {
+        let authorized = Authorized {
             id: res.account_id,
             storage_api_info: StorageApiInfo {
                 url: res.api_info.storage_api.url,
@@ -91,29 +94,23 @@ impl Client {
             token: res.token,
         };
 
-        *self.authorized_account.lock().unwrap() = Some(account);
+        self.account.set_authorized(authorized.clone());
 
-        Ok(())
+        Ok(authorized)
     }
 
     async fn _list_buckets(&self, mut req: ListBucketsRequest) -> Result<ListBucketsResponse> {
         const PATH: &str = "/b2api/v3/b2_list_buckets";
 
-        let account = self
-            .authorized_account
-            .lock()
-            .unwrap()
-            .as_ref()
-            .cloned()
-            .unwrap();
+        let authorized = self.get_or_try_authorize().await?;
 
-        req.account_id = account.id;
+        req.account_id = authorized.id;
 
-        let url = format!("{}{}", account.storage_api_info.url, PATH);
+        let url = format!("{}{}", authorized.storage_api_info.url, PATH);
         let req = self
             .inner
             .post(url)
-            .header(reqwest::header::AUTHORIZATION, account.token)
+            .header(reqwest::header::AUTHORIZATION, authorized.token)
             .json(&req);
 
         let res = req.send().await?;
@@ -121,34 +118,13 @@ impl Client {
         handle_b2_api_response(res).await
     }
 
+    pub async fn list_buckets(&self) {
+        todo!()
+    }
+
     pub async fn bucket<T: AsRef<str>>(&self, bucket_name: T) -> Bucket {
         todo!()
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct ApplicationKey {
-    id: String,
-    secret: String,
-}
-
-impl ApplicationKey {
-    pub fn new(id: String, secret: String) -> Self {
-        Self { id, secret }
-    }
-}
-
-#[derive(Clone, Debug)]
-struct StorageApiInfo {
-    url: String,
-    download_url: String,
-}
-
-#[derive(Clone, Debug)]
-struct Account {
-    id: String,
-    storage_api_info: StorageApiInfo,
-    token: String,
 }
 
 async fn handle_b2_api_response<T>(res: reqwest::Response) -> Result<T>
