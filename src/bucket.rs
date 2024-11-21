@@ -11,6 +11,7 @@ use std::time::SystemTime;
 pub struct Bucket {
     client: Client,
     id: String,
+    name: String,
     upload_url: Option<UploadUrl>,
 }
 
@@ -22,10 +23,15 @@ struct UploadUrl {
 }
 
 impl Bucket {
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
     fn from_list_buckets_buckets(client: Client, bucket: ListBucketsBuckets) -> Self {
         Self {
             client,
             id: bucket.bucket_id,
+            name: bucket.bucket_name,
             upload_url: None,
         }
     }
