@@ -103,8 +103,15 @@ impl Client {
         ListBucketsBuilder::new(self.clone())
     }
 
-    pub async fn bucket<T: AsRef<str>>(&self, bucket_name: T) -> Bucket {
-        todo!()
+    pub async fn bucket<T: AsRef<str>>(&self, bucket_name: T) -> Result<Option<Bucket>> {
+        let buckets = ListBucketsBuilder::new(self.clone())
+            .bucket_name(bucket_name.as_ref())
+            .send()
+            .await?;
+
+        Ok(buckets
+            .into_iter()
+            .find(|b| b.name() == bucket_name.as_ref()))
     }
 }
 
