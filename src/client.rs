@@ -1,7 +1,8 @@
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::account::{Authorized, StorageApiInfo};
+use crate::bucket::{ListBucketsBuilder, ListBucketsRequest, ListBucketsResponse};
 use crate::error::ErrorResponse;
 use crate::{Account, Bucket, Result};
 
@@ -28,29 +29,6 @@ struct AuthorizeAccountApiInfoStorageApi {
     url: String,
     #[serde(rename(deserialize = "downloadUrl"))]
     download_url: String,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ListBucketsRequest {
-    account_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    bucket_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    bucket_name: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-struct ListBucketsResponse {
-    buckets: Vec<ListBucketsBuckets>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-struct ListBucketsBuckets {
-    account_id: String,
-    bucket_id: String,
-    bucket_name: String,
 }
 
 #[derive(Clone, Debug)]
@@ -99,7 +77,10 @@ impl Client {
         Ok(authorized)
     }
 
-    async fn _list_buckets(&self, mut req: ListBucketsRequest) -> Result<ListBucketsResponse> {
+    pub(crate) async fn _list_buckets(
+        &self,
+        mut req: ListBucketsRequest,
+    ) -> Result<ListBucketsResponse> {
         const PATH: &str = "/b2api/v3/b2_list_buckets";
 
         let authorized = self.get_or_try_authorize().await?;
@@ -118,8 +99,8 @@ impl Client {
         handle_b2_api_response(res).await
     }
 
-    pub async fn list_buckets(&self) {
-        todo!()
+    pub async fn list_buckets(&self) -> ListBucketsBuilder {
+        ListBucketsBuilder::new(self.clone())
     }
 
     pub async fn bucket<T: AsRef<str>>(&self, bucket_name: T) -> Bucket {

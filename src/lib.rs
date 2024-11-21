@@ -1,9 +1,10 @@
 mod account;
-mod bucket;
+pub mod bucket;
 mod client;
 
 pub(crate) mod error;
 
+#[doc(inline)]
 pub use bucket::Bucket;
 pub use client::Client;
 pub use error::{Error, Result};
