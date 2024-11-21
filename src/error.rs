@@ -50,7 +50,8 @@ impl From<reqwest::Error> for Error {
             ErrorKind::Timeout => "timed out",
             ErrorKind::Deserialize => "invalid or malformed response",
             _ => "unknown error related to communication",
-        }.to_string();
+        }
+        .to_string();
 
         Self { kind, message }
     }
