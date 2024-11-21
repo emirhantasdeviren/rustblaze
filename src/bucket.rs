@@ -1,6 +1,5 @@
 mod list;
 
-pub use list::ListBucketsBuilder;
 pub(crate) use list::*;
 
 use crate::Client;
