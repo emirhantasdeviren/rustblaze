@@ -2,7 +2,9 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 
 use crate::account::{Authorized, StorageApiInfo};
-use crate::bucket::{ListBucketsBuilder, ListBucketsRequest, ListBucketsResponse};
+use crate::bucket::{
+    GetUploadUrlResponse, ListBucketsBuilder, ListBucketsRequest, ListBucketsResponse,
+};
 use crate::error::ErrorResponse;
 use crate::{Account, Bucket, Result};
 
@@ -75,6 +77,22 @@ impl Client {
         self.account.set_authorized(authorized.clone());
 
         Ok(authorized)
+    }
+
+    pub(crate) async fn get_upload_url(&self, bucket_id: String) -> Result<GetUploadUrlResponse> {
+        const PATH: &str = "/b2api/v3/b2_get_upload_url";
+        let authorized = self.get_or_try_authorize().await?;
+        let url = format!(
+            "{}{}?bucketId={}",
+            authorized.storage_api_info.url, PATH, bucket_id
+        );
+        let req = self
+            .inner
+            .get(url)
+            .header(reqwest::header::AUTHORIZATION, authorized.token);
+        let res = req.send().await?;
+
+        handle_b2_api_response(res).await
     }
 
     pub(crate) async fn _list_buckets(
