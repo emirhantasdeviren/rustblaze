@@ -1,6 +1,7 @@
 mod account;
 pub mod bucket;
 mod client;
+pub mod file;
 
 pub(crate) mod error;
 

@@ -4,8 +4,10 @@ pub use list::ListBucketsBuilder;
 pub(crate) use list::*;
 use serde::Deserialize;
 
+use crate::file::File;
 use crate::{Client, Result};
 
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
@@ -47,6 +49,20 @@ struct UploadUrlInner {
 pub(crate) struct GetUploadUrlResponse {
     pub(crate) upload_url: String,
     pub(crate) authorization_token: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct UploadFileResponse {
+    pub(crate) account_id: String,
+    pub(crate) bucket_id: String,
+    pub(crate) content_length: usize,
+    pub(crate) content_sha1: Option<String>,
+    pub(crate) content_md5: Option<String>,
+    pub(crate) content_type: Option<String>,
+    pub(crate) file_id: String,
+    pub(crate) file_name: String,
+    pub(crate) upload_timestamp: i64,
 }
 
 impl Bucket {
@@ -99,5 +115,30 @@ impl Bucket {
             .into_iter()
             .map(|b| Self::from_list_buckets_buckets(client.clone(), b))
             .collect()
+    }
+
+    pub async fn upload_file<P: AsRef<Path>>(&self, path: P, name: String) -> Result<File> {
+        let _root_span = tracing::trace_span!("upload_file").entered();
+        let url_span = tracing::trace_span!("get_url").entered();
+        tracing::trace!("getting upload url");
+        let start = SystemTime::now();
+        let upload_url = self.get_or_try_get_upload_url().await?;
+        let elapsed = start.elapsed().unwrap();
+        tracing::trace!("successfully got upload url, took {:?}", elapsed);
+        url_span.exit();
+
+        let _inner_span = tracing::trace_span!("inner");
+        let res = self
+            .client
+            .upload_file(upload_url.url, upload_url.token, path, name)
+            .await?;
+        let file = File {
+            id: res.file_id,
+            name: res.file_name,
+            size: res.content_length,
+            upload_timestamp: res.upload_timestamp,
+        };
+
+        Ok(file)
     }
 }

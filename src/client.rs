@@ -1,9 +1,14 @@
+use std::fmt::LowerHex;
+use std::path::Path;
+
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use sha1::{Digest, Sha1};
 
 use crate::account::{Authorized, StorageApiInfo};
 use crate::bucket::{
     GetUploadUrlResponse, ListBucketsBuilder, ListBucketsRequest, ListBucketsResponse,
+    UploadFileResponse,
 };
 use crate::error::ErrorResponse;
 use crate::{Account, Bucket, Result};
@@ -90,6 +95,36 @@ impl Client {
             .inner
             .get(url)
             .header(reqwest::header::AUTHORIZATION, authorized.token);
+        let res = req.send().await?;
+
+        handle_b2_api_response(res).await
+    }
+
+    pub(crate) async fn upload_file<P: AsRef<Path>>(
+        &self,
+        upload_url: String,
+        authorization_token: String,
+        path: P,
+        name: String,
+    ) -> Result<UploadFileResponse> {
+        let file = tokio::fs::read(path).await.unwrap();
+        let mut hasher = Sha1::new();
+        hasher.update(&file);
+        let sum = format!("{:x}", hasher.finalize());
+
+        let content_type = "b2/x-auto";
+        let content_length = file.len();
+
+        let req = self
+            .inner
+            .post(upload_url)
+            .header(reqwest::header::AUTHORIZATION, authorization_token)
+            .header("X-Bz-File-Name", name)
+            .header(reqwest::header::CONTENT_TYPE, content_type)
+            .header(reqwest::header::CONTENT_LENGTH, content_length)
+            .header("X-Bz-Content-Sha1", sum)
+            .body(file);
+
         let res = req.send().await?;
 
         handle_b2_api_response(res).await

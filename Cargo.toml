@@ -7,9 +7,12 @@ edition = "2021"
 reqwest = { version = "0.12.9", features = ["json"] }
 serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.133"
-tokio = "1.41.1"
+sha1 = "0.10.6"
+tokio = { version = "1.41.1", features = ["fs"] }
 tracing = "0.1.40"
 
 [dev-dependencies]
-tokio = { version = "1.41.1", features = ["rt", "macros"] }
+clap = { version = "4.5.21", features = ["derive"] }
+tokio = { version = "1.41.1", features = ["rt", "rt-multi-thread", "macros"] }
+tracing-subscriber = "0.3.18"
 tracing-test = "0.2.5"
