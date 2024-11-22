@@ -178,5 +178,11 @@ where
         return Err(err_response.into());
     }
 
-    Ok(res.json::<T>().await?)
+    match res.json::<T>().await {
+        Ok(res) => Ok(res),
+        Err(err) => {
+            tracing::error!("could not deserialize response body: {:?}", err);
+            Err(err.into())
+        }
+    }
 }
