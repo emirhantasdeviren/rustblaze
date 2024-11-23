@@ -4,6 +4,7 @@ pub use self::list::ListBucketsBuilder;
 pub(crate) use self::list::*;
 
 use serde::Deserialize;
+use tokio::io::AsyncRead;
 
 use crate::file::{File, ListFileNamesBuilder};
 use crate::{Client, Result};
@@ -145,5 +146,35 @@ impl Bucket {
         };
 
         Ok(file)
+    }
+
+    pub async fn upload_file_from_reader<R, S>(&self, reader: R, name: S) -> Result<File>
+    where
+        R: AsyncRead + Unpin,
+        S: AsRef<str>,
+    {
+        let _root_span = tracing::trace_span!("upload_file").entered();
+        let url_span = tracing::trace_span!("get_url").entered();
+        tracing::trace!("getting upload url");
+        let start = SystemTime::now();
+        let upload_url = self.get_or_try_get_upload_url().await?;
+        let elapsed = start.elapsed().unwrap();
+        tracing::trace!("successfully got upload url, took {:?}", elapsed);
+        url_span.exit();
+
+        let inner_span = tracing::trace_span!("inner").entered();
+        let res = self
+            .client
+            .upload_file_from_reader(
+                upload_url.url,
+                upload_url.token,
+                reader,
+                name.as_ref().to_owned(),
+            )
+            .await?;
+        inner_span.exit();
+
+
+        Ok(res.into())
     }
 }

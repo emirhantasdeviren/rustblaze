@@ -101,7 +101,7 @@ impl Client {
         handle_b2_api_response(res).await
     }
 
-    async fn upload_file_from_reader<R: AsyncRead + Unpin>(
+    pub(crate) async fn upload_file_from_reader<R: AsyncRead + Unpin>(
         &self,
         upload_url: String,
         authorization_token: String,
