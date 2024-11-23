@@ -1,10 +1,11 @@
 mod list;
 
-pub use list::ListBucketsBuilder;
-pub(crate) use list::*;
+pub use self::list::ListBucketsBuilder;
+pub(crate) use self::list::*;
+
 use serde::Deserialize;
 
-use crate::file::File;
+use crate::file::{File, ListFileNamesBuilder};
 use crate::{Client, Result};
 
 use std::path::Path;
@@ -51,7 +52,7 @@ pub(crate) struct GetUploadUrlResponse {
     pub(crate) authorization_token: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct UploadFileResponse {
     pub(crate) account_id: String,
@@ -115,6 +116,10 @@ impl Bucket {
             .into_iter()
             .map(|b| Self::from_list_buckets_buckets(client.clone(), b))
             .collect()
+    }
+
+    pub fn list_files(&self) -> ListFileNamesBuilder {
+        ListFileNamesBuilder::new(self.client.clone(), &self.id)
     }
 
     pub async fn upload_file<P: AsRef<Path>>(&self, path: P, name: String) -> Result<File> {

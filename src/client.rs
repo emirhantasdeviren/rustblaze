@@ -11,6 +11,7 @@ use crate::bucket::{
     UploadFileResponse,
 };
 use crate::error::ErrorResponse;
+use crate::file::{ListFileNamesRequest, ListFileNamesResponse};
 use crate::{Account, Bucket, Result};
 
 pub const BASE_URL: &str = "https://api.backblazeb2.com";
@@ -146,6 +147,26 @@ impl Client {
             .post(url)
             .header(reqwest::header::AUTHORIZATION, authorized.token)
             .json(&req);
+
+        let res = req.send().await?;
+
+        handle_b2_api_response(res).await
+    }
+
+    pub(crate) async fn _list_file_names(
+        &self,
+        req: ListFileNamesRequest,
+    ) -> Result<ListFileNamesResponse> {
+        const PATH: &str = "/b2api/v3/b2_list_file_names";
+
+        let authorized = self.get_or_try_authorize().await?;
+
+        let url = format!("{}{}", authorized.storage_api_info.url, PATH);
+        let req = self
+            .inner
+            .get(url)
+            .header(reqwest::header::AUTHORIZATION, authorized.token)
+            .query(&req);
 
         let res = req.send().await?;
 
